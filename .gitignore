@@ -1,0 +1,9 @@
+/.idea/
+/project/.sbtserver.lock
+/project/project/
+/project/.sbtserver
+/project/target/
+/target/
+/logs/
+/.settings/
+/.sbtserver/
