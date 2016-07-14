@@ -2,6 +2,8 @@ package services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.*;
+import play.Configuration;
+import play.api.Play;
 import play.libs.ws.WSClient;
 import play.libs.ws.WSRequest;
 import play.libs.ws.WSResponse;
@@ -17,11 +19,13 @@ public class GitHubApiService {
     private static final String BASE_URL = "https://api.github.com";
     private static final Integer CACHE_LIFE_IN_SECONDS = 60;
 
+    private  Configuration configuration;
     private CacheService cacheService;
     private WSClient wsClient;
 
     @Inject
-    public GitHubApiService(CacheService cacheService, WSClient wsClient) {
+    public GitHubApiService(Configuration configuration, CacheService cacheService, WSClient wsClient) {
+        this.configuration = configuration;
         this.cacheService = cacheService;
         this.wsClient = wsClient;
     }
@@ -224,6 +228,11 @@ public class GitHubApiService {
         JsonNode cachedResponse = cacheService.get(key);
         if (null != cachedResponse) {
             return CompletableFuture.supplyAsync(() -> cachedResponse);
+        }
+
+        String token = configuration.getString("github.api_token");
+        if (null != token && !token.isEmpty()) {
+            request.setHeader("Authorization", token);
         }
 
         return request.get().thenApply(
