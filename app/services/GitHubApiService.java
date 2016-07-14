@@ -38,8 +38,9 @@ public class GitHubApiService {
 
     public CompletionStage<JsonNode> passthrough(String path) {
         WSRequest request = wsClient.url(BASE_URL + "/" + path);
+        String key = getCacheKey(request, "", "");
 
-        return doGet(request, getCacheKey(request, "", ""));
+        return doGet(request, key, key);
     }
 
     public CompletionStage<JsonNode> getTopReposByForks(
@@ -50,7 +51,7 @@ public class GitHubApiService {
     ) {
         final String finalHash = (null == hash || hash.isEmpty()) ? generateHash() : hash;
 
-        return getNetflixRepos(finalHash).thenApply(repos -> {
+        return getNetflixRepos(hash, finalHash).thenApply(repos -> {
             if (!repos.isArray()) {
                 return new ArrayNode(JsonNodeFactory.instance);
             }
@@ -67,7 +68,7 @@ public class GitHubApiService {
     ) {
         final String finalHash = (null == hash || hash.isEmpty()) ? generateHash() : hash;
 
-        return getNetflixRepos(finalHash).thenApply(repos -> {
+        return getNetflixRepos(hash, finalHash).thenApply(repos -> {
             if (!repos.isArray()) {
                 return new ArrayNode(JsonNodeFactory.instance);
             }
@@ -84,7 +85,7 @@ public class GitHubApiService {
     ) {
         final String finalHash = (null == hash || hash.isEmpty()) ? generateHash() : hash;
 
-        return getNetflixRepos(finalHash).thenApply(repos -> {
+        return getNetflixRepos(hash, finalHash).thenApply(repos -> {
             if (!repos.isArray()) {
                 return new ArrayNode(JsonNodeFactory.instance);
             }
@@ -101,7 +102,7 @@ public class GitHubApiService {
     ) {
         final String finalHash = (null == hash || hash.isEmpty()) ? generateHash() : hash;
 
-        return getNetflixRepos(finalHash).thenApply(repos -> {
+        return getNetflixRepos(hash, finalHash).thenApply(repos -> {
             if (!repos.isArray()) {
                 return new ArrayNode(JsonNodeFactory.instance);
             }
@@ -118,7 +119,7 @@ public class GitHubApiService {
     ) {
         final String finalHash = (null == hash || hash.isEmpty()) ? generateHash() : hash;
 
-        return getNetflixRepos(finalHash).thenApply(repos -> {
+        return getNetflixRepos(hash, finalHash).thenApply(repos -> {
             if (!repos.isArray()) {
                 return new ArrayNode(JsonNodeFactory.instance);
             }
@@ -214,18 +215,18 @@ public class GitHubApiService {
         return topRepos;
     }
 
-    private CompletionStage<JsonNode> getNetflixRepos(String hash) {
+    private CompletionStage<JsonNode> getNetflixRepos(String submittedHash, String internalHash) {
         WSRequest request = wsClient.url(BASE_URL + "/orgs/Netflix/repos");
 
-        return doGet(request, getCacheKey(request, "", hash));
+        return doGet(request, getCacheKey(request, "", submittedHash), getCacheKey(request, "", internalHash));
     }
 
     private String generateHash() {
         return Base64.getUrlEncoder().encodeToString(((new Date()).getTime() + "|" + UUID.randomUUID().toString()).getBytes());
     }
 
-    private CompletionStage<JsonNode> doGet(WSRequest request, final String key) {
-        JsonNode cachedResponse = cacheService.get(key);
+    private CompletionStage<JsonNode> doGet(WSRequest request, final String fetchKey, final String storeKey) {
+        JsonNode cachedResponse = cacheService.get(fetchKey);
         if (null != cachedResponse) {
             return CompletableFuture.supplyAsync(() -> cachedResponse);
         }
@@ -239,7 +240,8 @@ public class GitHubApiService {
                 WSResponse::asJson
         ).thenApply(jsonNode -> {
             if (jsonNode != null) {
-                cacheService.set(key, jsonNode, CACHE_LIFE_IN_SECONDS);
+                cacheService.set(fetchKey, jsonNode, CACHE_LIFE_IN_SECONDS);
+                cacheService.set(storeKey, jsonNode, CACHE_LIFE_IN_SECONDS);
             }
 
             return jsonNode;
@@ -247,6 +249,10 @@ public class GitHubApiService {
     }
 
     private String getCacheKey(WSRequest request, String body, String hash) {
+        if (null == hash) {
+            hash = "";
+        }
+
         String key = request.getUrl() + hash + body;
         for (Map.Entry<String, Collection<String>> entry : request.getHeaders().entrySet()) {
             key += entry.getKey();
