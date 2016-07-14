@@ -5,6 +5,9 @@ This application is built using Play Framework 2.5.4. If you need instructions o
 Execute the following from a directory where you would like the source to reside:
 ```
 git clone https://github.com/vikpj/github-api-cache.git
+cd github-api-cache
+cp libexec ../.
+chmod +x activator
 activator dist
 ```
 
