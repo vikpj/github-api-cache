@@ -6,9 +6,9 @@ Execute the following from a directory where you would like the source to reside
 ```
 git clone https://github.com/vikpj/github-api-cache.git
 cd github-api-cache
-cp libexec ../.
+cp -r libexec ../.
 chmod +x activator
-activator dist
+./activator dist
 ```
 
 #Deployment
